@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Marketplace Stats</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/x-icon" href="/src/assets/favicon.ico">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="dark-mode">
+    <div class="main-container">
+        <div class="container">
+            <div class="analytics-header">
+                <h1>Marketplace Stats</h1>
+            </div>
+            
+            <div id="summarySection" class="summary-section">
+                <div class="summary-content">
+                    <div class="summary-header">
+                        <h2>Overall Statistics</h2>
+                    </div>
+                    <div class="summary-stats">
+                        <div class="summary-stat-card">
+                            <h3>Total Downloads</h3>
+                            <div id="totalDownloads" class="stat-value">0</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="trendingSection" class="trending-section">
+                <div class="trending-header">
+                    <h2>Trending Products</h2>
+                    <div class="trending-controls">
+                        <div class="trending-period-toggle">
+                            <button class="period-button active" data-period="week">7 Days</button>
+                            <button class="period-button" data-period="month">30 Days</button>
+                        </div>
+                        <div class="trending-filter-toggle">
+                            <label class="switch">
+                                <input type="checkbox" id="paidOnlyToggle">
+                                <span class="slider"></span>
+                                <span class="switch-label">Paid Only</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="trending-content">
+                    <div class="trending-navigation">
+                        <button id="trendingPrevButton" class="trending-nav-button trending-prev">
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                        <div class="trending-scroller">
+                            <div id="trendingProductsList" class="trending-products-list">
+                                <div class="info-message">No trending data available yet.</div>
+                            </div>
+                        </div>
+                        <button id="trendingNextButton" class="trending-nav-button trending-next">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                    <div class="trending-pagination">
+                        <span id="trendingCurrentPage">1</span>/<span id="trendingTotalPages">1</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="section-divider"></div>
+            
+            <div id="analyticsContent" class="analytics-content">
+                <div class="top-controls">
+                    <div class="left-controls">
+                        <button id="trackProductButton" class="primary-button">Track Product</button>
+                        <button id="addCategoryButton" class="secondary-button">Add Category</button>
+                        <button id="fetchAllButton" class="action-button">
+                            <i class="fas fa-sync-alt"></i> Fetch All
+                        </button>
+                    </div>
+                    <div class="right-controls">
+                        <button id="exportDataButton" class="action-button">
+                            <i class="fas fa-download"></i> Export Data
+                        </button>
+                        <button id="importDataButton" class="action-button">
+                            <i class="fas fa-upload"></i> Import Data
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="globalLoadingIndicator" class="loading-indicator hidden">
+                    <div class="spinner"></div>
+                    <span class="loading-text">Loading...</span>
+                </div>
+                
+                <div class="products-section">
+                    <div class="products-header">
+                        <div class="section-toggle">
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                        <h2>All Products</h2>
+                        <div id="allProductsCount" class="product-count">0 products</div>
+                    </div>
+                    <div id="allProductsContainer" class="products-container collapsed">
+                        <div id="categoriesContainer" class="categories-container">
+                            <div class="uncategorized-section">
+                                <div class="uncategorized-header">
+                                    <h3>Uncategorized</h3>
+                                    <div class="category-stats">
+                                        <div id="uncategorizedDownloads" class="downloads-count-small">0 downloads</div>
+                                        <div id="uncategorizedCount" class="product-count-small">0 products</div>
+                                    </div>
+                                </div>
+                                <div id="uncategorizedGrid" class="products-grid">
+                                    <div id="noProductsMessage" class="info-message">
+                                        No products tracked yet. Use "Track Product" to start tracking.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="errorContainer" class="hidden">
+                    <p id="errorMessage"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="trackProductModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Track New Product</h2>
+                <button class="close-button" type="button" aria-label="Close">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="input-group">
+                    <input type="text" id="productName" placeholder="Enter product name...">
+                    <button id="searchButton" type="button">Search</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="importDataModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Import Data</h2>
+                <button class="close-button" type="button" aria-label="Close">×</button>
+            </div>
+            <div class="modal-body">
+                <p class="modal-info">Select a JSON file to import your tracked products and categories.</p>
+                <div class="file-input-container">
+                    <input type="file" id="importFileInput" accept=".json">
+                </div>
+                <div class="modal-actions-bottom">
+                    <button id="importConfirmButton" class="primary-button" type="button">Import Data</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="categoryModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Add New Category</h2>
+                <button class="close-button" type="button" aria-label="Close">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="input-group">
+                    <input type="text" id="categoryName" placeholder="Enter category name...">
+                    <button id="addCategoryConfirmButton" type="button">Add</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="productModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Product Name</h2>
+                <div class="modal-actions">
+                    <a id="modalMarketplaceLink" href="#" target="_blank" class="button marketplace-button">View on Marketplace</a>
+                    <button class="close-button" type="button" aria-label="Close">×</button>
+                </div>
+            </div>
+            
+            <div class="modal-body">
+                <div class="stats-container">
+                    <div class="stat-card expanded-stat-card">
+                        <h3>Total Downloads</h3>
+                        <div id="modalDownloadCount" class="stat-value">0</div>
+                    </div>
+                </div>
+                
+                <div class="graph-container">
+                    <div class="graph-header">
+                        <h3>Download History</h3>
+                        <div class="graph-controls">
+                            <div class="view-toggle">
+                                <button id="viewDownloadsButton" class="view-button active">Total Downloads</button>
+                                <button id="viewDailyChangesButton" class="view-button">Daily Changes</button>
+                            </div>
+                            <select id="modalTimeRange" class="time-range">
+                                <option value="week">Last 7 Days</option>
+                                <option value="month">Last 30 Days</option>
+                                <option value="year">Last Year</option>
+                                <option value="all">All Time</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div id="downloadsChartContainer" class="chart-container">
+                        <canvas id="modalChart"></canvas>
+                        <div id="modalNoDataMessage" class="info-message">
+                            No historical data available yet.
+                        </div>
+                    </div>
+                    
+                    <div id="dailyChangesChartContainer" class="chart-container hidden">
+                        <canvas id="dailyChangesChart"></canvas>
+                        <div id="dailyChangesNoDataMessage" class="info-message">
+                            Not enough data to show daily changes.
+                        </div>
+                    </div>
+                    
+                    <div class="data-info">
+                        <div class="info-text">Data collected daily at app startup (max once per day)</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <template id="trendingProductTemplate">
+        <div class="trending-product-item">
+            <div class="trending-product-info">
+                <span class="trending-product-name"></span>
+                <span class="trending-product-price"></span>
+            </div>
+            <div class="trending-product-stats">
+                <div class="trending-download-count"></div>
+                <div class="trending-indicator"><i class="fas fa-arrow-up"></i></div>
+            </div>
+        </div>
+    </template>
+    
+    <template id="productCardTemplate">
+        <div class="product-card" draggable="true">
+            <div class="card-header">
+                <div class="title-price-wrapper">
+                    <h2 class="product-title"></h2>
+                </div>
+                <div class="card-actions">
+                    <button class="remove-button" type="button" aria-label="Remove">×</button>
+                </div>
+            </div>
+            
+            <div class="card-content">
+                <div class="download-info">
+                    <div class="stat-value download-count">0</div>
+                </div>
+                <div class="price-display"></div>
+                <div class="loading-spinner"></div>
+            </div>
+        </div>
+    </template>
+    
+    <template id="categoryTemplate">
+        <div class="category">
+            <div class="category-header">
+                <h3 class="category-title"></h3>
+                <div class="category-stats">
+                    <div class="category-downloads-count">0 downloads</div>
+                    <div class="category-product-count">0 products</div>
+                </div>
+                <div class="category-right-controls">
+                    <div class="category-sort-controls">
+                        <select class="category-sort">
+                            <option value="default">Default</option>
+                            <option value="newest">Newly Added</option>
+                            <option value="most-downloads">Most Downloads</option>
+                            <option value="least-downloads">Least Downloads</option>
+                        </select>
+                    </div>
+                    <div class="category-actions">
+                        <button class="remove-category-button" type="button" aria-label="Remove category">×</button>
+                    </div>
+                </div>
+            </div>
+            <div class="products-grid">
+                <div class="category-placeholder">Drag products here</div>
+            </div>
+        </div>
+    </template>
+    
+    <script src="main.js"></script>
+
+</body>
+</html>
