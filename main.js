@@ -22,7 +22,8 @@ document.addEventListener('DOMContentLoaded', () => {
     STORAGE_KEYS: {
       TRACKED_PRODUCTS: 'trackedProducts',
       CATEGORIES: 'productCategories',
-      LAST_COLLECTION: 'lastDailyCollection'
+      LAST_COLLECTION: 'lastDailyCollection',
+      PAID_ONLY: 'paidOnlyFilter' // Added new key for Paid Only toggle state
     },
     TRENDING_ITEMS_PER_PAGE: 3 // Number of trending items to show per page
   };
@@ -158,7 +159,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (DOM.trending.paidOnlyToggle) {
       DOM.trending.paidOnlyToggle.addEventListener('change', () => {
         state.showPaidOnly = DOM.trending.paidOnlyToggle.checked;
+        // Save the state to localStorage
+        localStorage.setItem(CONFIG.STORAGE_KEYS.PAID_ONLY, state.showPaidOnly);
         updateTrendingProducts();
+        updateSummaryStats();
       });
     }
     
@@ -296,6 +300,10 @@ document.addEventListener('DOMContentLoaded', () => {
       let totalDownloads = 0;
       
       for (const productId in state.trackedProducts) {
+        const product = state.trackedProducts[productId];
+        // Skip if paid only is checked and the product is free
+        if (state.showPaidOnly && (!product.unitAmount || product.unitAmount <= 0)) continue;
+        
         let inCategory = false;
         for (const catId in state.categories) {
           if (state.categories[catId].products && state.categories[catId].products.includes(productId)) {
@@ -305,7 +313,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (!inCategory) {
           count++;
-          totalDownloads += state.trackedProducts[productId].downloadCount || 0;
+          totalDownloads += product.downloadCount || 0;
         }
       }
       
@@ -316,7 +324,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
     
-    // Update total count
+    // Update total count - don't filter product count by paid status
     if (DOM.allProductsCount) {
       const totalCount = Object.keys(state.trackedProducts).length;
       DOM.allProductsCount.textContent = `${totalCount} product${totalCount !== 1 ? 's' : ''}`;
@@ -340,8 +348,12 @@ document.addEventListener('DOMContentLoaded', () => {
       let totalDownloads = 0;
       
       state.categories[categoryId].products.forEach(productId => {
-        if (state.trackedProducts[productId]) {
-          totalDownloads += state.trackedProducts[productId].downloadCount || 0;
+        const product = state.trackedProducts[productId];
+        if (product) {
+          // Only include paid products if showPaidOnly is true
+          if (!state.showPaidOnly || (product.unitAmount && product.unitAmount > 0)) {
+            totalDownloads += product.downloadCount || 0;
+          }
         }
       });
       
@@ -1746,7 +1758,11 @@ document.addEventListener('DOMContentLoaded', () => {
     
     for (const productId in state.trackedProducts) {
       const product = state.trackedProducts[productId];
-      downloads += product.downloadCount;
+      
+      // Only include paid products if showPaidOnly is true
+      if (!state.showPaidOnly || (product.unitAmount && product.unitAmount > 0)) {
+        downloads += product.downloadCount;
+      }
     }
     
     DOM.totalDownloads.textContent = downloads.toLocaleString();
@@ -1770,9 +1786,25 @@ document.addEventListener('DOMContentLoaded', () => {
     
     loadTrackedProducts();
     loadCategories();
+    loadPaidOnlyState(); // Added to load the Paid Only toggle state
     updateSummaryStats();
     updateTrendingProducts();
     updateProductCounts();
+  }
+  
+  // Load the Paid Only toggle state from localStorage
+  function loadPaidOnlyState() {
+    const savedState = localStorage.getItem(CONFIG.STORAGE_KEYS.PAID_ONLY);
+    
+    if (savedState !== null) {
+      // Convert the string to boolean
+      state.showPaidOnly = savedState === 'true';
+      
+      // Update the toggle UI to match the saved state
+      if (DOM.trending.paidOnlyToggle) {
+        DOM.trending.paidOnlyToggle.checked = state.showPaidOnly;
+      }
+    }
   }
   
   // Load tracked products from local storage
