@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Marketplace Stats</title>
     <link rel="stylesheet" href="styles.css">
-    <link rel="icon" type="image/x-icon" href="/src/assets/favicon.ico">
+    <!-- <link rel="icon" type="image/x-icon" href="/favicon.ico"> -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
@@ -77,6 +77,9 @@
                         <button id="fetchAllButton" class="action-button">
                             <i class="fas fa-sync-alt"></i> Fetch All
                         </button>
+                        <button id="lookupProductButton" class="action-button">
+                            <i class="fas fa-search"></i> Lookup a Product
+                        </button>
                     </div>
                     <div class="right-controls">
                         <button id="exportDataButton" class="action-button">
@@ -138,6 +141,39 @@
                 <div class="input-group">
                     <input type="text" id="productName" placeholder="Enter product name...">
                     <button id="searchButton" type="button">Search</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="lookupProductModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Lookup a Product</h2>
+                <button class="close-button" type="button" aria-label="Close">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="input-group">
+                    <input type="text" id="lookupProductName" placeholder="Enter product name...">
+                    <button id="lookupSearchButton" type="button">Lookup</button>
+                </div>
+                <div id="lookupLoadingIndicator" class="lookup-loading-indicator hidden">
+                    <div class="spinner"></div>
+                    <span class="loading-text">Looking up product...</span>
+                </div>
+                <div id="lookupResult" class="lookup-result hidden">
+                    <div class="lookup-product-info">
+                        <h3 id="lookupProductTitle"></h3>
+                        <div class="lookup-stats">
+                            <div class="lookup-stat">
+                                <span class="stat-label">Downloads:</span>
+                                <span id="lookupDownloadCount" class="stat-value">0</span>
+                            </div>
+                        </div>
+                        <div class="lookup-actions">
+                            <a id="lookupMarketplaceLink" href="#" target="_blank" class="marketplace-button">View on Marketplace</a>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

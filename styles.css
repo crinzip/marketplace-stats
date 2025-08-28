@@ -446,12 +446,6 @@ input:checked + .slider:before {
   color: var(--primary-color);
 }
 
-/* Remove earnings-related styles */
-.earnings-card,
-.earnings-info {
-  display: none;
-}
-
 /* Make the single stat card wider */
 .expanded-stat-card {
   min-width: 300px;
@@ -1219,40 +1213,67 @@ input[type="text"], input[type="file"] {
   }
 }
 
-.tooltip {
-  position: relative;
-  display: inline-block;
-}
-
-.tooltip .tooltip-text {
-  visibility: hidden;
-  width: 200px;
-  background-color: var(--card-bg);
-  color: var(--text-color);
-  text-align: center;
-  border-radius: 4px;
-  padding: 8px;
-  position: absolute;
-  z-index: 100;
-  bottom: 125%;
-  left: 50%;
-  transform: translateX(-50%);
-  opacity: 0;
-  transition: opacity 0.3s;
-  font-weight: normal;
-  font-size: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+/* Lookup Modal Styles */
+.lookup-loading-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  margin-top: 20px;
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
   border: 1px solid var(--border-color);
-  pointer-events: none;
 }
 
-.tooltip:hover .tooltip-text {
-  visibility: visible;
-  opacity: 1;
+.lookup-result {
+  margin-top: 20px;
+  padding: 20px;
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
 }
 
-.info-icon {
+.lookup-product-info h3 {
+  font-size: 18px;
+  color: var(--primary-color);
+  margin-bottom: 15px;
+  text-align: center;
+}
+
+.lookup-stats {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+  gap: 20px;
+}
+
+.lookup-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+}
+
+.lookup-stat .stat-label {
   font-size: 14px;
   color: var(--secondary-color);
-  cursor: pointer;
+  margin-bottom: 5px;
+}
+
+.lookup-stat .stat-value {
+  font-size: 24px;
+  font-weight: bold;
+  color: var(--primary-color);
+}
+
+.lookup-actions {
+  display: flex;
+  justify-content: center;
+}
+
+@media (max-width: 480px) {
+  .lookup-stats {
+    flex-direction: column;
+    gap: 15px;
+  }
 }

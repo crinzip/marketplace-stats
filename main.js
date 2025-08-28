@@ -14,7 +14,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const CONFIG = {
     COOLDOWN_PERIOD: 60 * 1000,
     API_FETCH_INTERVAL: 3000,
-    USD_TO_EURO_RATE: 0.93,
     API_ENDPOINTS: {
       PRODUCTS_SEARCH: 'https://mp-gateway.elgato.com/products',
       PRODUCT_DETAILS: 'https://mp-gateway.elgato.com/products/{productId}',
@@ -36,6 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
     exportDataBtn: document.getElementById('exportDataButton'),
     importDataBtn: document.getElementById('importDataButton'),
     fetchAllBtn: document.getElementById('fetchAllButton'),
+    lookupProductBtn: document.getElementById('lookupProductButton'),
     categoriesContainer: document.getElementById('categoriesContainer'),
     uncategorizedGrid: document.getElementById('uncategorizedGrid'),
     errorContainer: document.getElementById('errorContainer'),
@@ -53,7 +53,8 @@ document.addEventListener('DOMContentLoaded', () => {
       trackProduct: document.getElementById('trackProductModal'),
       category: document.getElementById('categoryModal'),
       product: document.getElementById('productModal'),
-      importData: document.getElementById('importDataModal')
+      importData: document.getElementById('importDataModal'),
+      lookupProduct: document.getElementById('lookupProductModal')
     },
     
     productModal: {
@@ -77,6 +78,14 @@ document.addEventListener('DOMContentLoaded', () => {
     addCategoryConfirmBtn: document.getElementById('addCategoryConfirmButton'),
     importFileInput: document.getElementById('importFileInput'),
     importConfirmBtn: document.getElementById('importConfirmButton'),
+    
+    lookupProductName: document.getElementById('lookupProductName'),
+    lookupSearchButton: document.getElementById('lookupSearchButton'),
+    lookupLoadingIndicator: document.getElementById('lookupLoadingIndicator'),
+    lookupResult: document.getElementById('lookupResult'),
+    lookupProductTitle: document.getElementById('lookupProductTitle'),
+    lookupDownloadCount: document.getElementById('lookupDownloadCount'),
+    lookupMarketplaceLink: document.getElementById('lookupMarketplaceLink'),
     
     trending: {
       section: document.getElementById('trendingSection'),
@@ -107,10 +116,8 @@ document.addEventListener('DOMContentLoaded', () => {
     activeDailyChangesChart: null,
     currentProductId: null,
     draggedProduct: null,
-    draggedCategory: null,
     isFetchingAll: false,
     fetchQueue: [],
-    usdToEuroRate: CONFIG.USD_TO_EURO_RATE,
     currentTrendingPeriod: 'week',
     showPaidOnly: false,
     currentChartView: 'downloads',
@@ -187,6 +194,10 @@ document.addEventListener('DOMContentLoaded', () => {
       DOM.addCategoryBtn.addEventListener('click', () => openModal(DOM.modals.category));
     }
     
+    if (DOM.lookupProductBtn && DOM.modals.lookupProduct) {
+      DOM.lookupProductBtn.addEventListener('click', () => openModal(DOM.modals.lookupProduct));
+    }
+    
     if (DOM.exportDataBtn) {
       DOM.exportDataBtn.addEventListener('click', exportData);
     }
@@ -215,6 +226,16 @@ document.addEventListener('DOMContentLoaded', () => {
       if (DOM.productName) {
         DOM.productName.addEventListener('keypress', e => { 
           if (e.key === 'Enter') searchProduct(); 
+        });
+      }
+    }
+    
+    // Lookup product functionality
+    if (DOM.lookupSearchButton) {
+      DOM.lookupSearchButton.addEventListener('click', lookupProduct);
+      if (DOM.lookupProductName) {
+        DOM.lookupProductName.addEventListener('keypress', e => { 
+          if (e.key === 'Enter') lookupProduct(); 
         });
       }
     }
@@ -768,6 +789,184 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
   
+  // Show/hide lookup loading indicator
+  function showLookupLoading(show) {
+    if (!DOM.lookupLoadingIndicator) return;
+    
+    if (show) {
+      DOM.lookupLoadingIndicator.classList.remove('hidden');
+      if (DOM.lookupResult) {
+        DOM.lookupResult.classList.add('hidden');
+      }
+    } else {
+      DOM.lookupLoadingIndicator.classList.add('hidden');
+    }
+  }
+  
+  // Lookup a product (one-time lookup without tracking)
+  async function lookupProduct() {
+    if (!DOM.lookupProductName) return;
+    
+    const productName = DOM.lookupProductName.value.trim();
+    
+    if (!productName) {
+      showError('Please enter a product name');
+      return;
+    }
+    
+    // Hide previous results and show loading
+    if (DOM.lookupResult) {
+      DOM.lookupResult.classList.add('hidden');
+    }
+    showLookupLoading(true);
+    
+    try {
+      const productData = await fetchProductDataForLookup(productName);
+      if (!productData) {
+        showLookupLoading(false);
+        return;
+      }
+      
+      const productDetails = await fetchProductDetailsForLookup(productData.productId);
+      if (!productDetails) {
+        showLookupLoading(false);
+        return;
+      }
+      
+      showLookupLoading(false);
+      
+      // Display the lookup results
+      displayLookupResults(productData, productDetails);
+      
+    } catch (error) {
+      showLookupLoading(false);
+      showError('An unexpected error occurred during lookup');
+    }
+  }
+  
+  // Fetch product data for lookup (without global loading indicator)
+  async function fetchProductDataForLookup(productName) {
+    try {
+      const url = `${CONFIG.API_ENDPOINTS.PRODUCTS_SEARCH}?name=${encodeURIComponent(productName)}`;
+      const response = await fetch(url);
+      
+      if (response.status === 429) {
+        showError('Rate limit exceeded. Please try again later');
+        return null;
+      }
+      
+      if (!response.ok) {
+        showError(`API error: ${response.status} ${response.statusText}`);
+        return null;
+      }
+      
+      const data = await response.json();
+      
+      if (!data || !data.results || data.results.length === 0) {
+        showError('Product not found. Please check the name');
+        return null;
+      }
+      
+      const product = data.results[0];
+      
+      // Check if the product has price information in the search results
+      let unitAmount = 0;
+      let currency = 'usd';
+      
+      if (product.variants && product.variants.length > 0) {
+        // Find the default variant or use the first one
+        const variant = product.variants.find(v => v.is_default) || product.variants[0];
+        
+        if (variant && variant.price) {
+          unitAmount = variant.price.unit_amount || 0;
+          currency = variant.price.currency || 'usd';
+        }
+      }
+      
+      return {
+        name: product.name,
+        orgId: product.organization_id,
+        productId: product.id,
+        marketplaceLink: `https://marketplace.elgato.com/product/${product.slug}`,
+        // Pre-load price information if available in search results
+        unitAmount: unitAmount,
+        currency: currency
+      };
+    } catch (error) {
+      showError('Failed to retrieve product data');
+      return null;
+    }
+  }
+  
+  // Fetch detailed product information for lookup (without global loading indicator)
+  async function fetchProductDetailsForLookup(productId) {
+    try {
+      const url = CONFIG.API_ENDPOINTS.PRODUCT_DETAILS
+        .replace('{productId}', productId);
+        
+      const response = await fetch(url);
+      
+      if (response.status === 429) {
+        showError('Rate limit exceeded. Please try again later');
+        return null;
+      }
+      
+      if (!response.ok) {
+        showError(`API error: ${response.status} ${response.statusText}`);
+        return null;
+      }
+      
+      const data = await response.json();
+      
+      if (!data) {
+        showError('Failed to retrieve product details');
+        return null;
+      }
+      
+      // Extract the correct price from the variants array
+      let unitAmount = 0;
+      let currency = 'usd';
+      
+      // Check if the product has variants with pricing
+      if (data.variants && data.variants.length > 0) {
+        // Find the default variant or use the first one
+        const variant = data.variants.find(v => v.is_default) || data.variants[0];
+        
+        if (variant && variant.price) {
+          unitAmount = variant.price.unit_amount || 0;
+          currency = variant.price.currency || 'usd';
+        }
+      }
+      
+      return {
+        downloadCount: data.download_count || 0,
+        unitAmount: unitAmount,
+        currency: currency
+      };
+    } catch (error) {
+      showError('Failed to retrieve product details');
+      return null;
+    }
+  }
+  
+  // Display lookup results in the modal
+  function displayLookupResults(productData, productDetails) {
+    if (!DOM.lookupResult || !DOM.lookupProductTitle || !DOM.lookupDownloadCount || 
+        !DOM.lookupMarketplaceLink) return;
+    
+    // Set product title
+    DOM.lookupProductTitle.textContent = productData.name;
+    
+    // Set download count
+    DOM.lookupDownloadCount.textContent = productDetails.downloadCount.toLocaleString();
+    
+    // Set marketplace link
+    DOM.lookupMarketplaceLink.href = productData.marketplaceLink;
+    
+    // Show the results
+    DOM.lookupResult.classList.remove('hidden');
+  }
+  
   // Fetch product data from API
   async function fetchProductData(productName) {
     try {
@@ -1020,20 +1219,13 @@ document.addEventListener('DOMContentLoaded', () => {
       return shortFormat ? '$0.00' : 'Free';
     }
     
-    // Convert cents to dollars
+    // Convert cents to dollars/euros
     const amount = (numericUnitAmount / 100).toFixed(2);
     
-    if (shortFormat) {
-      return `$${amount}`;
-    }
-    
-    if (currency && currency.toLowerCase() === 'usd') {
-      const euroAmount = (numericUnitAmount / 100) * state.usdToEuroRate;
-      return `$${amount} / €${euroAmount.toFixed(2)}`;
-    } else if (currency && currency.toLowerCase() === 'eur') {
+    if (currency && currency.toLowerCase() === 'eur') {
       return `€${amount}`;
     } else {
-      return `${amount} ${currency ? currency.toUpperCase() : 'USD'}`;
+      return `$${amount}`;
     }
   }
   
@@ -1515,6 +1707,17 @@ document.addEventListener('DOMContentLoaded', () => {
           state.activeDailyChangesChart = null;
         }
         state.currentProductId = null;
+      } else if (modal === DOM.modals.lookupProduct) {
+        // Clear lookup modal content when closing
+        if (DOM.lookupProductName) {
+          DOM.lookupProductName.value = '';
+        }
+        if (DOM.lookupResult) {
+          DOM.lookupResult.classList.add('hidden');
+        }
+        if (DOM.lookupLoadingIndicator) {
+          DOM.lookupLoadingIndicator.classList.add('hidden');
+        }
       }
     }, 300);
   }
