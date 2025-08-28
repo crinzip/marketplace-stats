@@ -17,7 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
     USD_TO_EURO_RATE: 0.93,
     API_ENDPOINTS: {
       PRODUCTS_SEARCH: 'https://mp-gateway.elgato.com/products',
-      PRODUCT_DETAILS: 'https://mp-gateway.elgato.com/organizations/{orgId}/products/{productId}',
+      PRODUCT_DETAILS: 'https://mp-gateway.elgato.com/products/{productId}',
     },
     STORAGE_KEYS: {
       TRACKED_PRODUCTS: 'trackedProducts',
@@ -751,7 +751,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
       
-      const productDetails = await fetchProductDetails(productData.orgId, productData.productId);
+      const productDetails = await fetchProductDetails(productData.productId);
       if (!productDetails) return;
       
       addTrackedProduct(productData, productDetails);
@@ -828,12 +828,11 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   
   // Fetch detailed product information
-  async function fetchProductDetails(orgId, productId) {
+  async function fetchProductDetails(productId) {
     try {
       showLoading(true);
       
       const url = CONFIG.API_ENDPOINTS.PRODUCT_DETAILS
-        .replace('{orgId}', orgId)
         .replace('{productId}', productId);
         
       const response = await fetch(url);
@@ -1376,7 +1375,7 @@ document.addEventListener('DOMContentLoaded', () => {
         productCard.classList.add('loading');
       }
       
-      const productDetails = await fetchProductDetails(product.orgId, product.productId);
+      const productDetails = await fetchProductDetails(product.productId);
       
       if (productCard) {
         productCard.classList.remove('loading');
